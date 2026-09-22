@@ -1,0 +1,16 @@
+-- Agium Sales Effort Dashboard — seed data
+--
+-- Bewust leeg: dit dashboard start met een schone lei. De data uit
+-- Performance_Management.xlsx (Afspraken/Aanvragen/Plaatsingen) wordt
+-- niet meegenomen — dat was een andere manier van tellen dan de
+-- Klantbezoek/Prospect bezoek/Consultant bezoek-registratie die dit
+-- dashboard nu bijhoudt. Iedereen logt vanaf nu gewoon zelf zijn/haar
+-- efforts in via de "+ Nieuwe effort"-knop in de Log-tab.
+--
+-- Wil je toch een paar voorbeeldregels om het dashboard mee te testen?
+-- Voer dan bijvoorbeeld dit uit (pas gerust aan):
+--
+-- insert into efforts (medewerker, type, propositie, naam_notitie, jaar, week) values
+--   ('Arno',      'Klantbezoek',       'W&S', 'Voorbeeldklant BV — jaargesprek', 2026, 7),
+--   ('Ghislaine', 'Prospect bezoek',   'AI',  'Nieuw lead via LinkedIn',          2026, 7),
+--   ('Sander',    'Consultant bezoek', '-',   'Kwartaalcheck bij klant',          2026, 8);

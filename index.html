@@ -603,20 +603,35 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
   }
-  .msel-btn:after { content: '▾'; font-size: 10px; color: var(--grijs-tekst); margin-left: 6px; }
+  .msel-btn:hover { background: var(--wit); border-color: var(--agium-donker); }
+  .msel-btn:after {
+    content: '▾';
+    font-size: 10px;
+    color: var(--grijs-tekst);
+    margin-left: 6px;
+    transition: transform .15s ease, color .15s ease;
+  }
+  .msel.open .msel-btn {
+    background: var(--wit);
+    border-color: var(--agium-donker);
+    box-shadow: 0 0 0 3px rgba(17,54,66,0.10);
+  }
+  .msel.open .msel-btn:after { transform: rotate(180deg); color: var(--agium-donker); }
   .msel-panel {
     display: none;
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    min-width: 220px;
+    min-width: 230px;
     max-height: 280px;
     overflow-y: auto;
     background: var(--wit);
     border: 1px solid var(--grijs-rand);
+    border-top: 3px solid var(--agium-donker);
     border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(17,54,66,0.14);
+    box-shadow: 0 12px 28px rgba(17,54,66,0.18);
     padding: 10px;
     z-index: 40;
   }
@@ -631,25 +646,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .msel-actions button {
     flex: 1;
     border: 1px solid var(--grijs-rand);
-    background: var(--grijs-bg);
     border-radius: 7px;
     padding: 5px 0;
     font-size: 11px;
     cursor: pointer;
-    color: var(--agium-donker);
-    font-weight: 600;
+    font-weight: 700;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
   }
+  .msel-actions button.msel-all {
+    background: #eaf6f1;
+    border-color: var(--agium-groen);
+    color: var(--agium-donkergroen);
+  }
+  .msel-actions button.msel-all:hover { background: var(--agium-groen); color: #ffffff; }
+  .msel-actions button.msel-none {
+    background: var(--grijs-bg);
+    color: var(--agium-donker);
+  }
+  .msel-actions button.msel-none:hover { background: var(--agium-roze); border-color: var(--agium-roze); }
   .msel-option {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 4px;
+    padding: 7px 6px;
     font-size: 13px;
     border-radius: 6px;
     cursor: pointer;
+    transition: background .1s ease;
   }
-  .msel-option:hover { background: var(--grijs-bg); }
-  .msel-option input { accent-color: var(--agium-donker); }
+  .msel-option:hover { background: rgba(158,212,216,0.30); }
+  .msel-option.checked { background: rgba(67,176,140,0.12); font-weight: 600; color: var(--agium-donkergroen); }
+  .msel-option input { accent-color: var(--agium-donker); width: 15px; height: 15px; cursor: pointer; }
 
   .week-range { display: flex; gap: 6px; align-items: center; }
   .week-range input {
@@ -970,7 +997,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <table>
           <thead>
             <tr>
-              <th>Week</th>
+              <th>Datum</th>
               <th>Medewerker</th>
               <th>Type bezoek</th>
               <th>Propositie</th>
@@ -996,9 +1023,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <div class="modal">
     <h3 id="effort-modal-title">Nieuwe effort</h3>
     <div class="field">
-      <label>Week</label>
-      <input type="week" id="f-week">
-      <span class="field-error" id="err-week">Kies een week.</span>
+      <label>Datum</label>
+      <input type="date" id="f-datum">
+      <span class="field-error" id="err-datum">Kies een datum.</span>
     </div>
     <div class="field">
       <label>Medewerker</label>
@@ -1163,15 +1190,28 @@ let chartMedewerker, chartPropositie, chartWeek;
    ============================================================ */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
-function parseWeekInput(value) {
-  // value format: "2026-W07"
-  const m = /^(\d{4})-W(\d{2})$/.exec(value || '');
-  if (!m) return null;
-  return { jaar: parseInt(m[1], 10), week: parseInt(m[2], 10) };
+// Correcte ISO 8601-weekberekening (week begint op maandag, week 1 bevat de
+// eerste donderdag van het jaar) — voorkomt afwijkingen rond jaarwisselingen.
+function isoWeekOfDate(dateInput) {
+  const d = (dateInput instanceof Date) ? new Date(dateInput) : new Date(dateInput + 'T00:00:00');
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7; // maandag = 0
+  target.setDate(target.getDate() - dayNr + 3); // donderdag van deze week
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const diff = target - firstThursday;
+  const week = 1 + Math.round(diff / (7 * 86400000));
+  return { jaar: target.getFullYear(), week };
 }
 
-function weekInputValue(jaar, week) {
-  return `${jaar}-W${pad2(week)}`;
+function todayDateValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+function formatDatumNL(datumStr) {
+  if (!datumStr) return '';
+  const [j, m, d] = datumStr.split('-');
+  return `${d}-${m}-${j}`;
 }
 
 function weekLabel(jaar, week) {
@@ -1200,26 +1240,34 @@ function renderMultiSelect(containerId, allOptions, selectedSet, onChange) {
 
   btn.textContent = label();
 
+  // Klikken binnen het paneel (checkboxen, Alles/Geen) mogen niet doorborrelen
+  // naar de document-listener die open dropdowns sluit — anders sluit het
+  // paneel meteen na elke aanvinking, en kun je niet meerdere dingen
+  // achter elkaar aan-/uitvinken.
+  panel.onclick = (e) => e.stopPropagation();
+
   panel.innerHTML = '';
   const actions = document.createElement('div');
   actions.className = 'msel-actions';
   const allBtn = document.createElement('button');
-  allBtn.type = 'button'; allBtn.textContent = 'Alles';
-  allBtn.onclick = () => { allOptions.forEach(o => selectedSet.add(o)); onChange(); };
+  allBtn.type = 'button'; allBtn.className = 'msel-all'; allBtn.textContent = 'Alles';
+  allBtn.onclick = () => { allOptions.forEach(o => selectedSet.add(o)); renderMultiSelect(containerId, allOptions, selectedSet, onChange); onChange(); };
   const noneBtn = document.createElement('button');
-  noneBtn.type = 'button'; noneBtn.textContent = 'Geen';
-  noneBtn.onclick = () => { selectedSet.clear(); onChange(); };
+  noneBtn.type = 'button'; noneBtn.className = 'msel-none'; noneBtn.textContent = 'Geen';
+  noneBtn.onclick = () => { selectedSet.clear(); renderMultiSelect(containerId, allOptions, selectedSet, onChange); onChange(); };
   actions.appendChild(allBtn); actions.appendChild(noneBtn);
   panel.appendChild(actions);
 
   allOptions.forEach(opt => {
     const row = document.createElement('label');
-    row.className = 'msel-option';
+    row.className = 'msel-option' + (selectedSet.has(opt) ? ' checked' : '');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = selectedSet.has(opt);
     cb.onchange = () => {
       if (cb.checked) selectedSet.add(opt); else selectedSet.delete(opt);
+      row.classList.toggle('checked', cb.checked);
+      btn.textContent = label();
       onChange();
     };
     const span = document.createElement('span');
@@ -1357,10 +1405,7 @@ function renderKPIs(fx) {
 
 /* ---------- Laatst actief per medewerker (alfabetisch) ---------- */
 function huidigeJaarWeek() {
-  const now = new Date();
-  const jan1 = new Date(now.getFullYear(), 0, 1);
-  const week = Math.ceil((((now - jan1) / 86400000) + jan1.getDay() + 1) / 7);
-  return { jaar: now.getFullYear(), week };
+  return isoWeekOfDate(new Date());
 }
 
 function renderLastActive(fx) {
@@ -1523,7 +1568,7 @@ let lastSortedLog = [];
 function renderLogTable(fx) {
   const tbody = document.getElementById('log-tbody');
   tbody.innerHTML = '';
-  const sorted = fx.slice().sort((a, b) => (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
+  const sorted = fx.slice().sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
   lastSortedLog = sorted;
 
   document.getElementById('log-count').textContent = sorted.length;
@@ -1533,7 +1578,7 @@ function renderLogTable(fx) {
   toShow.forEach(e => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${weekLabel(e.jaar, e.week)}</td>
+      <td>${e.datum ? formatDatumNL(e.datum) : weekLabel(e.jaar, e.week)}${e.datum ? ` <span style="color:var(--grijs-tekst); font-size:11px;">· W${pad2(e.week)}</span>` : ''}</td>
       <td>${e.medewerker}</td>
       <td><span class="tag ${TYPE_TAG_CLASS[e.type] || ''}">${e.type}</span></td>
       <td><span class="tag tag-prop">${e.propositie}</span></td>
@@ -1561,7 +1606,7 @@ function renderLogTable(fx) {
     const id = b.dataset.del;
     const e = efforts.find(x => x.id === id);
     openConfirm(
-      `Effort van ${e.medewerker} (${e.type}, ${weekLabel(e.jaar, e.week)}) verwijderen?`,
+      `Effort van ${e.medewerker} (${e.type}, ${e.datum ? formatDatumNL(e.datum) : weekLabel(e.jaar, e.week)}) verwijderen?`,
       () => deleteEffort(id)
     );
   });
@@ -1618,21 +1663,18 @@ fillSelect('f-propositie', PROPOSITIES);
 
 function openEffortModal(id) {
   editingId = id || null;
-  document.getElementById('err-week').style.display = 'none';
+  document.getElementById('err-datum').style.display = 'none';
   if (editingId) {
     const e = efforts.find(x => x.id === editingId);
     document.getElementById('effort-modal-title').textContent = 'Effort bewerken';
-    document.getElementById('f-week').value = weekInputValue(e.jaar, e.week);
+    document.getElementById('f-datum').value = e.datum || '';
     document.getElementById('f-medewerker').value = e.medewerker;
     document.getElementById('f-type').value = e.type;
     document.getElementById('f-propositie').value = e.propositie;
     document.getElementById('f-notitie').value = e.naam_notitie || '';
   } else {
     document.getElementById('effort-modal-title').textContent = 'Nieuwe effort';
-    const now = new Date();
-    const jan1 = new Date(now.getFullYear(), 0, 1);
-    const wk = Math.ceil((((now - jan1) / 86400000) + jan1.getDay() + 1) / 7);
-    document.getElementById('f-week').value = weekInputValue(now.getFullYear(), wk);
+    document.getElementById('f-datum').value = todayDateValue();
     document.getElementById('f-medewerker').value = MEDEWERKERS[0];
     document.getElementById('f-type').value = TYPES[0];
     document.getElementById('f-propositie').value = PROPOSITIES[0];
@@ -1648,18 +1690,20 @@ document.getElementById('btn-effort-cancel').onclick = () => {
 };
 
 document.getElementById('btn-effort-save').onclick = async () => {
-  const wk = parseWeekInput(document.getElementById('f-week').value);
-  if (!wk) {
-    document.getElementById('err-week').style.display = 'block';
+  const datumVal = document.getElementById('f-datum').value;
+  if (!datumVal) {
+    document.getElementById('err-datum').style.display = 'block';
     return;
   }
+  const { jaar, week } = isoWeekOfDate(datumVal);
   const payload = {
     medewerker: document.getElementById('f-medewerker').value,
     type: document.getElementById('f-type').value,
     propositie: document.getElementById('f-propositie').value,
     naam_notitie: document.getElementById('f-notitie').value.trim() || null,
-    jaar: wk.jaar,
-    week: wk.week
+    datum: datumVal,
+    jaar,
+    week
   };
 
   const btn = document.getElementById('btn-effort-save');
@@ -1744,8 +1788,9 @@ function exportEffortsToExcel(rows, filenameSuffix) {
     alert('Geen efforts gevonden binnen deze selectie — er is niets om te exporteren.');
     return;
   }
-  const sorted = rows.slice().sort((a, b) => (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
+  const sorted = rows.slice().sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
   const sheetRows = sorted.map(e => ({
+    Datum: e.datum ? formatDatumNL(e.datum) : '',
     Jaar: e.jaar,
     Week: e.week,
     Medewerker: e.medewerker,
@@ -2048,12 +2093,13 @@ function generatePdfReport(rows, periodeLabel, opties) {
   // ---- Detail-log ----
   if (opties.log) {
     sectionTitle(`Detail-log (${rows.length} regels)`);
-    const sorted = rows.slice().sort((a, b) => (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
+    const sorted = rows.slice().sort((a, b) => (b.datum || '').localeCompare(a.datum || '') || (b.jaar - a.jaar) || (b.week - a.week) || a.medewerker.localeCompare(b.medewerker));
     doc.autoTable({
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Week', 'Medewerker', 'Type', 'Propositie', 'Naam / notitie']],
+      head: [['Datum', 'Week', 'Medewerker', 'Type', 'Propositie', 'Naam / notitie']],
       body: sorted.map(e => [
+        e.datum ? formatDatumNL(e.datum) : '',
         weekLabel(e.jaar, e.week),
         e.medewerker,
         e.type,
@@ -2065,7 +2111,7 @@ function generatePdfReport(rows, periodeLabel, opties) {
       headStyles: { fillColor: '#113642', textColor: '#ffffff', fontSize: 8 },
       bodyStyles: { textColor: '#113642' },
       alternateRowStyles: { fillColor: '#f4f7f7' },
-      columnStyles: { 4: { cellWidth: 180 } }
+      columnStyles: { 5: { cellWidth: 160 } }
     });
     y = doc.lastAutoTable.finalY + 10;
   }

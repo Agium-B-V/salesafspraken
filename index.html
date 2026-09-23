@@ -776,6 +776,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   .tag-klant { background: #e4f4ef; color: var(--agium-donkergroen); }
   .tag-prospect { background: var(--agium-lichtblauw); color: var(--agium-donker); }
   .tag-consultant { background: var(--agium-roze); color: var(--agium-donker); }
+  .tag-aanvraag { background: var(--agium-donkergroen); color: #ffffff; }
+  .tag-plaatsing { background: #fbe3e3; color: var(--agium-donker); }
   .tag-prop { background: var(--grijs-bg); color: var(--agium-donker); border: 1px solid var(--grijs-rand); }
   .tag-status-actief { background: #e4f4ef; color: var(--agium-donkergroen); }
   .tag-status-let-op { background: #fdf3dd; color: #8a6a1f; }
@@ -1151,6 +1153,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 /* ============================================================
    CONFIG — vul hier je eigen Supabase-project gegevens in
    ============================================================ */
+
+
 const SUPABASE_URL = 'https://xsbgpnlvungvytehwcnu.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_H9Nn4GO2L2OlaTPvWNFAVA_MBsJmFdB';
 
@@ -1162,15 +1166,17 @@ const supabaseClient = (SUPABASE_URL.startsWith('http'))
    VASTE LIJSTEN
    ============================================================ */
 const MEDEWERKERS = ['Arno', 'Ghislaine', 'Joost', 'Marc', 'Max', 'Olaf', 'Roberto', 'Sander']; // alfabetisch
-const TYPES = ['Klantbezoek', 'Prospect bezoek', 'Consultant bezoek'];
+const TYPES = ['Klantbezoek', 'Prospect bezoek', 'Consultant bezoek', 'Aanvraag', 'Plaatsing'];
 const PROPOSITIES = ['-', 'ABS', 'AI', 'Deta', 'W&S', 'Kerst', 'Events', 'Golf', 'ABC'];
 const AGIUM_PALETTE = ['#113642', '#43B08C', '#9ED4D8', '#007059', '#F6C6C6'];
-const TYPE_PALETTE = ['#113642', '#43B08C', '#9ED4D8'];
+const TYPE_PALETTE = ['#113642', '#43B08C', '#9ED4D8', '#007059', '#F6C6C6'];
 
 const TYPE_TAG_CLASS = {
   'Klantbezoek': 'tag-klant',
   'Prospect bezoek': 'tag-prospect',
-  'Consultant bezoek': 'tag-consultant'
+  'Consultant bezoek': 'tag-consultant',
+  'Aanvraag': 'tag-aanvraag',
+  'Plaatsing': 'tag-plaatsing'
 };
 
 /* ============================================================
